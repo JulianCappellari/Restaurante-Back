@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import { CreateUserDTO, UpdateUserDTO } from '../dto/user.dto';
+import Address from '../models/Address';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';  // Cambia este valor en producción
 
@@ -14,8 +15,10 @@ export const registerUser = async (data: CreateUserDTO) => {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
+      phone: data.phone,
       password: hashedPassword,
       rol: data.rol,
+      address: data.address ? Address.create(data.address) : undefined,
     });
     return newUser;
   } catch (error) {
@@ -33,7 +36,15 @@ export const authenticateUser = async (email: string, password: string) => {
   if (!isPasswordValid) {
     throw new Error('Contraseña incorrecta');
   }
-  const token = jwt.sign({ id: user.id, rol: user.rol }, JWT_SECRET, { expiresIn: '1h' });
+  const token = jwt.sign(
+    {
+      id: user.id,
+      rol: user.rol,
+      email: user.email, 
+    },
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
   return { token };
 };
 

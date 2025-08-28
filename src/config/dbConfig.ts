@@ -12,13 +12,14 @@ const sequelize = new Sequelize(
     dialect: 'mysql',
   }
 );
-sequelize.sync({ force: false })
-  .then(() => {
-    console.log('Base de datos sincronizada correctamente');
-  })
-  .catch((error) => {
-    console.error('Error al sincronizar la base de datos:', error);
-  });
+// Temporarily disable automatic sync during migration
+// sequelize.sync({ force: false, alter: false })
+//   .then(() => {
+//     console.log('Base de datos sincronizada correctamente');
+//   })
+//   .catch((error) => {
+//     console.error('Error al sincronizar la base de datos:', error);
+//   });
 
 
 export default sequelize;

@@ -3,13 +3,15 @@ import { Request, Response, NextFunction } from 'express';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';  // Cambia este valor en producción
 
-interface JwtPayloadWithRole extends jwt.JwtPayload {
-  rol: 'Administrator' | 'Waiter' | 'Customer'; // Define los roles posibles
+interface JwtPayloadWithInfo extends jwt.JwtPayload {
+  id: number;
+  rol: 'Administrator' | 'Waiter' | 'Customer';
+  email: string;
 }
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayloadWithRole;
+      user?: JwtPayloadWithInfo;
     }
   }
 }
@@ -24,7 +26,7 @@ export const authMiddleware = (roles: string[]) => {
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayloadWithRole;
+      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayloadWithInfo;
       console.log('Token decodificado:', decoded);  // Verifica el contenido del token decodificado
 
       if (roles.length && !roles.includes(decoded.rol)) {

@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 import sequelize from './config/dbConfig';
 import routerApp from './routes/App';
 import routerAuth from './routes/Auth';
+import cors from 'cors';
+
 
 // Cargar variables de entorno
 dotenv.config();
@@ -10,6 +12,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 // Middleware para parsear JSON
 app.use(express.json());
 

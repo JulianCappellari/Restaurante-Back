@@ -9,6 +9,7 @@ interface UserAttributes {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
     password: string;
     rol: 'Administrator' | 'Waiter' | 'Customer';
   }
@@ -22,6 +23,7 @@ interface UserAttributes {
     public firstName!: string;
     public lastName!: string;
     public email!: string;
+    public phone!: string;
     public password!: string;
     public rol!: 'Administrator' | 'Waiter' | 'Customer';
   }
@@ -45,6 +47,10 @@ User.init({
         allowNull: false,
         unique: true
     },
+    phone: {
+        type: DataTypes.STRING(20),
+        allowNull: false
+    },
     password: {
         type: DataTypes.STRING(255),
         allowNull: false
@@ -52,9 +58,8 @@ User.init({
     rol:{
         type: DataTypes.ENUM('Administrator', 'Waiter', 'Customer'),
         allowNull: false
-    }
-
-
+    },
+    
 },{
     sequelize,
     modelName: 'User',

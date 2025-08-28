@@ -1,68 +1,72 @@
-import Menu from '../models/Menu';
+import { Menu, DishCustomization } from '../models/Associations';
 import { CreateMenuDTO, UpdateMenuDTO } from '../dto/menu.dto';
 
-// Crear un plato en el menú
 export const createMenu = async (data: CreateMenuDTO) => {
-    try {
-        const newMenu = await Menu.create({
-            nameDish: data.nameDish,
-            price: data.price,
-            available: data.available,
-            imageUrl: data.imageUrl || null
-        });
-        return newMenu;
-    } catch (error) {
-        throw new Error(`Error al crear el plato del menú: ${error instanceof Error ? error.message : 'Error inesperado'}`);
-    }
+  const { customizations, ...menuData } = data;
+  const newMenu = await Menu.create({ ...menuData, imageUrl: menuData.imageUrl || null });
+
+  if (customizations?.length) {
+    const rows = customizations.map(c => ({ ...c, menuId: newMenu.id }));
+    await DishCustomization.bulkCreate(rows);
+  }
+
+  return Menu.findByPk(newMenu.id, {
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    include: [{
+      model: DishCustomization,
+      as: 'dishCustomizations',
+      required: false,
+      attributes: [
+        'id','menuId','name','description','isRemovable','additionalPrice',
+        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+      ],
+    }],
+    order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],
+  });
 };
 
-// Obtener todos los platos del menú
 export const getAllMenuItems = async () => {
-    try {
-        const menuItems = await Menu.findAll();
-        return menuItems;
-    } catch (error) {
-        throw new Error(`Error al listar los platos del menú: ${error instanceof Error ? error.message : 'Error inesperado'}`);
-    }
+  return Menu.findAll({
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    include: [{
+      model: DishCustomization,
+      as: 'dishCustomizations',
+      required: false,
+      attributes: [
+        'id','menuId','name','description','isRemovable','additionalPrice',
+        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+      ],
+    }],
+    order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],
+  });
 };
 
-// Obtener un plato específico por ID
 export const getMenuById = async (id: number) => {
-    try {
-        const menuItem = await Menu.findByPk(id);
-        if (!menuItem) {
-            throw new Error(`Plato del menú con ID ${id} no encontrado`);
-        }
-        return menuItem;
-    } catch (error) {
-        throw new Error(`Error al obtener el plato del menú: ${error instanceof Error ? error.message : 'Error inesperado'}`);
-    }
+  const menuItem = await Menu.findByPk(id, {
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    include: [{
+      model: DishCustomization,
+      as: 'dishCustomizations',
+      required: false,
+      attributes: [
+        'id','menuId','name','description','isRemovable','additionalPrice',
+        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+      ],
+    }],
+    order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],
+  });
+  if (!menuItem) throw new Error(`Plato del menú con ID ${id} no encontrado`);
+  return menuItem;
 };
 
-// Actualizar un plato del menú
 export const updateMenu = async (id: number, data: UpdateMenuDTO) => {
-    try {
-        const menuItem = await Menu.findByPk(id);
-        if (!menuItem) {
-            throw new Error(`Plato del menú con ID ${id} no encontrado`);
-        }
-        const updatedMenuItem = await menuItem.update(data);  // Actualización parcial
-        return updatedMenuItem;
-    } catch (error) {
-        throw new Error(`Error al actualizar el plato del menú: ${error instanceof Error ? error.message : 'Error inesperado'}`);
-    }
+  const menuItem = await Menu.findByPk(id);
+  if (!menuItem) throw new Error(`Plato del menú con ID ${id} no encontrado`);
+  return menuItem.update(data);
 };
 
-// Eliminar un plato del menú
 export const deleteMenuItem = async (id: number) => {
-    try {
-        const menuItem = await Menu.findByPk(id);
-        if (!menuItem) {
-            throw new Error(`Plato del menú con ID ${id} no encontrado`);
-        }
-        const deletedMenuItem = await menuItem.destroy();
-        return deletedMenuItem;
-    } catch (error) {
-        throw new Error(`Error al eliminar el plato del menú: ${error instanceof Error ? error.message : 'Error inesperado'}`);
-    }
+  const menuItem = await Menu.findByPk(id);
+  if (!menuItem) throw new Error(`Plato del menú con ID ${id} no encontrado`);
+  return menuItem.destroy();
 };

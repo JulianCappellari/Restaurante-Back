@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getAllOrders, createOrder, getOrderById, updateOrder, deleteOrder } from '../services/orderService';
+import { getAllOrders, createOrder, getOrderById, updateOrder, deleteOrder, getOrdersByCustomerId } from '../services/orderService';
 import { UpdateOrderDTO } from '../dto/order.dto';
 
 export const getAllOrdersController = async (req: Request, res: Response) => {
@@ -48,5 +48,15 @@ export const deleteOrderController = async (req: Request, res: Response) => {
         res.status(200).json(deletedOrder);
     } catch (error) {
         res.status(500).json({ error: `Error al eliminar la orden con el id ${id}: ${error instanceof Error ? error.message : 'Error inesperado'}` });
+    }
+};
+
+export const getOrdersByCustomerIdController = async (req: Request, res: Response) => {
+    const { customerId } = req.params;
+    try {
+      const orders = await getOrdersByCustomerId(Number(customerId));
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Error al obtener órdenes del cliente" });
     }
 };

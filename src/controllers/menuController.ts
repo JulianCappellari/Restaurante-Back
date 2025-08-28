@@ -2,14 +2,14 @@ import { Request, Response } from 'express';
 import { getAllMenuItems, createMenu, getMenuById, updateMenu, deleteMenuItem } from '../services/menuService';
 import { UpdateMenuDTO } from '../dto/menu.dto';
 
-export const getAllMenuItemsController = async (req: Request, res: Response) => {
+export const getAllMenuItemsController = async (_req: Request, res: Response) => {
     try {
-        const menuItems = await getAllMenuItems();
-        res.status(200).json(menuItems);
+      const menuItems = await getAllMenuItems();
+      res.status(200).json(menuItems);
     } catch (error) {
-        res.status(500).json({ error: `Error al obtener los platos del menú: ${error instanceof Error ? error.message : 'Error inesperado'}` });
+      res.status(500).json({ error: `Error al obtener los platos del menú: ${error instanceof Error ? error.message : 'Error inesperado'}` });
     }
-};
+  };
 
 export const createMenuController = async (req: Request, res: Response) => {
     try {
