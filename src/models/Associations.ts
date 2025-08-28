@@ -22,6 +22,7 @@ Menu.hasMany(DishCustomization, { foreignKey: 'menuId', as: 'dishCustomizations'
 DishCustomization.belongsTo(Menu, { foreignKey: 'menuId', as: 'menu' });
 
 // OJO: usa los nombres de columnas reales del modelo OrderItem (snake_case)
+Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 OrderItem.belongsTo(Menu,  { foreignKey: 'menu_id',  as: 'menu' });
 

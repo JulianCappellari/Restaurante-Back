@@ -1,8 +1,13 @@
 import { IsString, IsNumber, IsBoolean, IsOptional, IsIn, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateDishCustomizationDTO, UpdateDishCustomizationDTO, IDishCustomizationBase } from './dishCustomization.dto';
+import { 
+  CreateDishCustomizationDTO, 
+  UpdateDishCustomizationDTO, 
+  IDishCustomizationBase,
+  IDishCustomizationResponse 
+} from './dishCustomization.dto';
 
-const DISH_TYPES = ['Entrada', 'Plato Principal', 'Postre', 'Bebida', 'Ensalada', 'Guarnicion'] as const;
+export const DISH_TYPES = ['Entrada', 'Plato Principal', 'Postre', 'Bebida', 'Ensalada', 'Guarnicion'] as const;
 export type DishType = typeof DISH_TYPES[number];
 
 // DTO para la creación de un plato del menú
@@ -65,7 +70,7 @@ export class UpdateMenuDTO {
   customizations?: UpdateDishCustomizationDTO[];
 }
 
-// DTO para la respuesta de un plato del menú
+// Interface para la respuesta de un plato del menú
 export interface IMenuResponse {
   id: number;
   nameDish: string;
@@ -74,16 +79,7 @@ export interface IMenuResponse {
   imageUrl: string | null;
   typeDish: DishType;
   customizations?: IDishCustomizationResponse[];
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface IDishCustomizationResponse extends IDishCustomizationBase {
-  id: number;
-  menuId: number;
-  isActive: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  
 }
 
 export class MenuResponseDTO implements IMenuResponse {
@@ -94,8 +90,7 @@ export class MenuResponseDTO implements IMenuResponse {
   imageUrl!: string | null;
   typeDish!: DishType;
   customizations?: IDishCustomizationResponse[];
-  createdAt?: Date;
-  updatedAt?: Date;
+  
 
   constructor(partial: Partial<MenuResponseDTO>) {
     Object.assign(this, partial);
@@ -111,9 +106,7 @@ export class DishCustomizationResponseDTO implements IDishCustomizationResponse 
   additionalPrice!: number;
   isDefaultIncluded!: boolean;
   isRequired!: boolean;
-  isActive!: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  
 
   constructor(partial: Partial<DishCustomizationResponseDTO>) {
     Object.assign(this, partial);

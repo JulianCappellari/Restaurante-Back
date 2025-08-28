@@ -9,10 +9,8 @@ export interface MenuAttributes {
   available: boolean;
   imageUrl?: string | null;
   typeDish: 'Entrada' | 'Plato Principal' | 'Postre' | 'Bebida' | 'Ensalada' | 'Guarnicion';
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
 }
-export interface MenuCreationAttributes extends Optional<MenuAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+export interface MenuCreationAttributes extends Optional<MenuAttributes, 'id'> {}
 
 class Menu extends Model<MenuAttributes, MenuCreationAttributes> implements MenuAttributes {
   public id!: number;
@@ -21,8 +19,6 @@ class Menu extends Model<MenuAttributes, MenuCreationAttributes> implements Menu
   public available!: boolean;
   public imageUrl?: string | null;
   public typeDish!: MenuAttributes['typeDish'];
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
 
   public static initialize() {
     Menu.init({
@@ -32,11 +28,12 @@ class Menu extends Model<MenuAttributes, MenuCreationAttributes> implements Menu
       available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
       imageUrl: { type: DataTypes.STRING(255), allowNull: true },
       typeDish: { type: DataTypes.ENUM('Entrada','Plato Principal','Postre','Bebida','Ensalada','Guarnicion'), allowNull: false },
+
     }, {
       sequelize,
       modelName: 'Menu',
       tableName: 'menus',
-      timestamps: true,
+      timestamps: false,
       underscored: false, // columnas camelCase en DB
     });
   }

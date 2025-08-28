@@ -11,9 +11,6 @@ interface DishCustomizationAttributes {
   additionalPrice: number;
   isDefaultIncluded: boolean;
   isRequired: boolean;
-  // isActive NO existe en DB => no lo declares (o déjalo opcional si querés tipar)
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
 }
 type Creation = Optional<DishCustomizationAttributes, 'id'>;
 
@@ -28,8 +25,6 @@ class DishCustomization
   public additionalPrice!: number;
   public isDefaultIncluded!: boolean;
   public isRequired!: boolean;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
 
   public static initialize() {
     DishCustomization.init({
@@ -45,7 +40,7 @@ class DishCustomization
       sequelize,
       modelName: 'DishCustomization',
       tableName: 'dish_customizations',
-      timestamps: true,
+      timestamps: false,
       underscored: false, // createdAt/updatedAt en camelCase
     });
   }

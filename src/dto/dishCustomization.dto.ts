@@ -1,19 +1,27 @@
 import { IsBoolean, IsNumber, IsOptional, IsString, IsIn } from 'class-validator';
 
 export interface IDishCustomizationBase {
+  id?: number;
+  menuId?: number;
   name: string;
   description?: string;
   isRemovable: boolean;
   additionalPrice: number;
   isDefaultIncluded: boolean;
   isRequired: boolean;
-  isActive: boolean;
+  
 }
 
 export interface IOrderItemCustomization {
   customizationId: number;
   isIncluded: boolean;
   notes?: string;
+}
+
+export interface IDishCustomizationResponse extends IDishCustomizationBase {
+  id: number;
+  menuId: number;
+  
 }
 
 export class CreateDishCustomizationDTO implements Partial<IDishCustomizationBase> {
@@ -40,9 +48,7 @@ export class CreateDishCustomizationDTO implements Partial<IDishCustomizationBas
   @IsOptional()
   isRequired = false;
 
-  @IsBoolean()
-  @IsOptional()
-  isActive = true;
+
 }
 
 export class UpdateDishCustomizationDTO implements Partial<IDishCustomizationBase> {
@@ -70,9 +76,7 @@ export class UpdateDishCustomizationDTO implements Partial<IDishCustomizationBas
   @IsOptional()
   isRequired?: boolean;
 
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
+  
 }
 
 export class OrderItemCustomizationDTO implements IOrderItemCustomization {
