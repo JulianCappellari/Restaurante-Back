@@ -11,14 +11,14 @@ export const createMenu = async (data: CreateMenuDTO) => {
   }
 
   return Menu.findByPk(newMenu.id, {
-    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish'],
     include: [{
       model: DishCustomization,
       as: 'dishCustomizations',
       required: false,
       attributes: [
         'id','menuId','name','description','isRemovable','additionalPrice',
-        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+        'isDefaultIncluded','isRequired'
       ],
     }],
     order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],
@@ -27,14 +27,14 @@ export const createMenu = async (data: CreateMenuDTO) => {
 
 export const getAllMenuItems = async () => {
   return Menu.findAll({
-    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish'],
     include: [{
       model: DishCustomization,
       as: 'dishCustomizations',
       required: false,
       attributes: [
         'id','menuId','name','description','isRemovable','additionalPrice',
-        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+        'isDefaultIncluded','isRequired'
       ],
     }],
     order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],
@@ -43,14 +43,14 @@ export const getAllMenuItems = async () => {
 
 export const getMenuById = async (id: number) => {
   const menuItem = await Menu.findByPk(id, {
-    attributes: ['id','nameDish','price','available','imageUrl','typeDish','createdAt','updatedAt'],
+    attributes: ['id','nameDish','price','available','imageUrl','typeDish'],
     include: [{
       model: DishCustomization,
       as: 'dishCustomizations',
       required: false,
       attributes: [
         'id','menuId','name','description','isRemovable','additionalPrice',
-        'isDefaultIncluded','isRequired','createdAt','updatedAt'
+        'isDefaultIncluded','isRequired'
       ],
     }],
     order: [['id','ASC'], [{ model: DishCustomization, as: 'dishCustomizations' }, 'id', 'ASC']],

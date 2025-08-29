@@ -70,7 +70,7 @@ Address.init({
   }, {
     sequelize,
     modelName: 'Address',
-    tableName: 'Addresses',
+    tableName: 'addresses',
   })
   
   export default Address

@@ -1,278 +1,291 @@
-import { Sequelize } from 'sequelize';
-import sequelize from "../config/dbConfig";
-import bcrypt from "bcryptjs";
+// src/seed/seed.ts
+import bcrypt from 'bcrypt';
+import sequelize from '../config/dbConfig';
+
+// Carga modelos y asociaciones (Menu.initialize, DishCustomization.initialize, etc.)
+import '../models/Associations';
+
 import User from '../models/User';
 import Address from '../models/Address';
+import PaymentMethod from '../models/PaymentMethod';
+import Table from '../models/Table';
+import Inventory from '../models/Inventory';
+import Menu from '../models/Menu';
+import DishCustomization from '../models/DishCustomization';
+import Booking from '../models/Booking';
 import Order from '../models/Order';
 import OrderItem from '../models/OrderItem';
-import Menu from '../models/Menu';
-import PaymentMethod from '../models/PaymentMethod';
-import DishCustomization from '../models/DishCustomization';
-import Table from '../models/Table';
-import Booking from '../models/Booking';
-import Inventory from '../models/Inventory';
 import OrderItemCustomization from '../models/OrderItemCustomization';
-// Models will be initialized automatically by Sequelize
 
-async function seedData() {
+async function seed() {
   try {
-    // Initialize and sync all models
+    // Limpiar base (usa los nombres reales de tablas en tu MySQL)
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
+    const drops = [
+      'order_item_customizations',
+      'order_items',
+      'orders',
+      'bookings',
+      'dish_customizations',
+      'inventory',
+      'payment_methods',
+      'addresses',
+      'menus',
+      'tables',
+      'users',
+    ];
+    for (const t of drops) await sequelize.query(`DROP TABLE IF EXISTS \`${t}\`;`);
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
+
+    // Crear todas las tablas desde modelos + asociaciones
     await sequelize.sync({ force: true });
-    console.log("Database synchronized");
+    console.log('✓ Tablas sincronizadas');
 
-    // 1. Create Users
-    const users = await User.bulkCreate([
-      {
-        firstName: "Admin",
-        lastName: "User",
-        email: "admin@restaurant.com",
-        password: await bcrypt.hash("admin123", 10),
-        phone: "+541112345678",
-        rol: "Administrator"
-      },
-      {
-        firstName: "John",
-        lastName: "Waiter",
-        email: "waiter@restaurant.com",
-        password: await bcrypt.hash("waiter123", 10),
-        phone: "+541112345679",
-        rol: "Waiter"
-      },
-      {
-        firstName: "Maria",
-        lastName: "Garcia",
-        email: "maria@example.com",
-        password: await bcrypt.hash("customer123", 10),
-        phone: "+541112345670",
-        rol: "Customer"
-      }
+    // --- Usuarios ---
+    const [adminPass, waiterPass, custPass] = await Promise.all([
+      bcrypt.hash('admin123', 10),
+      bcrypt.hash('waiter123', 10),
+      bcrypt.hash('customer123', 10),
     ]);
 
-    // 2. Create Addresses
-    const addresses = await Address.bulkCreate([
-      {
-        userId: users[2].id, // Maria's address
-        street: "Av. Corrientes",
-        streetNumber: "1234",
-        city: "Buenos Aires",
-        province: "Buenos Aires",
-        postalCode: "C1043"
-      },
-      {
-        userId: users[2].id, // Maria's second address
-        street: "Lavalle",
-        streetNumber: "567",
-        city: "Buenos Aires",
-        province: "Buenos Aires",
-        postalCode: "C1047",
-        floor: "2",
-        apartment: "B"
-      }
-    ]);
+    const admin = await User.create({
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@restaurant.com',
+      phone: '+541111111111',
+      password: adminPass,
+      rol: 'Administrator',
+    });
 
-    // 3. Create Payment Methods
-    const paymentMethods = await PaymentMethod.bulkCreate([
-      {
-        userId: users[2].id, // Maria's payment method
-        name: "Visa Gold",
-        cardNumber: await bcrypt.hash("4111111111111111", 10),
-        cardHolderName: "MARIA GARCIA",
-        expirationDate: "12/25",
-        cvv: await bcrypt.hash("123", 10),
-        last4: "1111",
-        status: true
-      }
-    ]);
+    const waiter = await User.create({
+      firstName: 'John',
+      lastName: 'Waiter',
+      email: 'waiter@restaurant.com',
+      phone: '+541122222222',
+      password: waiterPass,
+      rol: 'Waiter',
+    });
 
-    // 4. Create Menu Items
-    const menus = await Menu.bulkCreate([
-      // Main Dishes
-      {
-        nameDish: "Milanesa Napolitana con Papas Fritas",
-        price: 15.99,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/milanesa-napolitana.jpg'
-      },
-      {
-        nameDish: "Ravioles de Ricotta y Espinaca",
-        price: 14.50,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/ravioles-espinaca.jpg'
-      },
-      {
-        nameDish: "Asado de Tira con Ensalada Mixta",
-        price: 18.99,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/asado-tira.jpg'
-      },
-      // Appetizers
-      {
-        nameDish: "Empanadas de Carne (x3)",
-        price: 8.50,
-        available: true,
-        typeDish: 'Entrada',
-        imageUrl: '/images/empanadas.jpg'
-      },
-      // Desserts
-      {
-        nameDish: "Tiramisú",
-        price: 7.50,
-        available: true,
-        typeDish: 'Postre',
-        imageUrl: '/images/tiramisu.jpg'
-      },
-      // Drinks
-      {
-        nameDish: "Agua Mineral 500ml",
-        price: 2.50,
-        available: true,
-        typeDish: 'Bebida',
-        imageUrl: '/images/agua.jpg'
-      }
-    ]);
+    const customer = await User.create({
+      firstName: 'Maria',
+      lastName: 'Garcia',
+      email: 'maria@example.com',
+      phone: '+541133333333',
+      password: custPass,
+      rol: 'Customer',
+    });
+    console.log('✓ Users');
 
-    // 5. Create Dish Customizations
-    const customizations = await DishCustomization.bulkCreate([
-      // Customizations for Milanesa Napolitana
-      {
-        menuId: menus[0].id,
-        name: "Sin Jamón",
-        description: "Se sirve sin jamón",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: true,
-        isRequired: false
-      },
-      {
-        menuId: menus[0].id,
-        name: "Huevo Extra",
-        description: "Agregar un huevo frito extra",
-        isRemovable: true,
-        additionalPrice: 1.50,
-        isDefaultIncluded: false,
-        isRequired: false
-      },
-      // Customizations for Ravioles
-      {
-        menuId: menus[1].id,
-        name: "Salsa Extra",
-        description: "Porción extra de salsa fileto",
-        isRemovable: true,
-        additionalPrice: 1.00,
-        isDefaultIncluded: false,
-        isRequired: false
-      }
-    ]);
+    // --- Direcciones ---
+    const addr1 = await Address.create({
+      userId: customer.id,
+      street: 'Av. Corrientes',
+      streetNumber: '1234',
+      city: 'Buenos Aires',
+      province: 'Buenos Aires',
+      postalCode: 'C1043',
+    });
 
-    // 6. Create Tables
-    const tables = await Table.bulkCreate([
-      { number: 1, capacity: 4, isAvailable: true },
-      { number: 2, capacity: 2, isAvailable: true },
-      { number: 3, capacity: 6, isAvailable: true },
-      { number: 4, capacity: 2, isAvailable: true }
-    ]);
+    const addr2 = await Address.create({
+      userId: customer.id,
+      street: 'Lavalle',
+      streetNumber: '567',
+      city: 'Buenos Aires',
+      province: 'Buenos Aires',
+      postalCode: 'C1047',
+      floor: '2',
+      apartment: 'B',
+    });
+    console.log('✓ Addresses');
 
-    // 7. Create Bookings
-    const bookings = await Booking.bulkCreate([
-      {
-        userId: users[2].id,
-        bookingDate: new Date(Date.now() + 86400000), // Tomorrow
-        numberPeople: 4,
-        status: 'confirmed',
-        customerName: 'Maria Garcia',
-        customerPhone: users[2].phone,
-        notes: 'Mesa cerca de la ventana'
-      }
-    ]);
+    // --- Métodos de pago del usuario ---
+    const rawCard = '4111111111111111';
+    const rawCvv = '123';
+    const pm1 = await PaymentMethod.create({
+      name: 'Visa Gold',
+      type: 'card',          // ← nuevo campo
+      isDefault: true,       // ← nuevo campo (default entre métodos guardados)
+      cardHolderName: 'MARIA GARCIA',
+      cardNumber: await bcrypt.hash(rawCard, 10),
+      last4: rawCard.slice(-4),
+      expirationDate: '12/26',
+      cvv: await bcrypt.hash(rawCvv, 10),
+      status: true,
+      userId: customer.id,
+    });
+    console.log('✓ PaymentMethods');
 
-    // 8. Create Orders
-    const orders = await Order.bulkCreate([
-      {
-        customerId: users[2].id,
-        date: new Date(),
-        state: "preparing",
-        total_amount: 35.48,
-        deliveryType: "delivery",
-        addressId: addresses[0].id,
-        paymentType: "card",
-        paymentMethodId: paymentMethods[0].id
-      },
-      {
-        customerId: users[2].id,
-        date: new Date(),
-        state: "received",
-        total_amount: 24.50,
-        deliveryType: "in_place",
-        paymentType: "cash"
-      }
+    // --- Mesas ---
+    await Promise.all([
+      Table.create({ tableNum: 1, ability: 4, state: 'available' }),
+      Table.create({ tableNum: 2, ability: 2, state: 'reserved' }),
+      Table.create({ tableNum: 3, ability: 6, state: 'available' }),
     ]);
+    console.log('✓ Tables');
 
-    // 9. Create Order Items
-    const orderItems = await OrderItem.bulkCreate([
-      // Items for first order
-      {
-        order_id: orders[0].getDataValue('id'),
-        menu_id: menus[0].id, // Milanesa Napolitana
-        quantity: 2,
-        price: 15.99,
-        notes: "Una sin jamón"
-      },
-      {
-        order_id: orders[0].getDataValue('id'),
-        menu_id: menus[5].id, // Agua
-        quantity: 1,
-        price: 2.50,
-        notes: "Sin gas"
-      },
-      // Items for second order
-      {
-        order_id: orders[1].getDataValue('id'),
-        menu_id: menus[1].id, // Ravioles
-        quantity: 1,
-        price: 14.50,
-        notes: "Salsa aparte"
-      },
-      {
-        order_id: orders[1].getDataValue('id'),
-        menu_id: menus[4].id, // Tiramisú
-        quantity: 1,
-        price: 7.50,
-        notes: "Para compartir"
-      }
+    // --- Inventario ---
+    await Promise.all([
+      Inventory.create({ name: 'Tomatoes', amount: 100, minimumThreshold: 20 }),
+      Inventory.create({ name: 'Cheese', amount: 50, minimumThreshold: 10 }),
+      Inventory.create({ name: 'Olive Oil', amount: 30, minimumThreshold: 5 }),
     ]);
+    console.log('✓ Inventory');
 
-    // 10. Create Order Item Customizations
-    await OrderItemCustomization.bulkCreate([
-      {
-        orderItemId: orderItems[0].id,
-        customizationId: customizations[0].id, // Sin Jamón
-        isIncluded: true
-      },
-      {
-        orderItemId: orderItems[0].id,
-        customizationId: customizations[1].id, // Huevo Extra
-        isIncluded: true
-      }
+    // --- Menú (sin timestamps en tu modelo de Menu) ---
+    const milanesa = await Menu.create({
+      nameDish: 'Milanesa Napolitana',
+      price: 15.99,
+      available: true,
+      typeDish: 'Plato Principal',
+      imageUrl: '/images/milanesa.jpg',
+    });
+    const ravioles = await Menu.create({
+      nameDish: 'Ravioles Ricotta y Espinaca',
+      price: 14.5,
+      available: true,
+      typeDish: 'Plato Principal',
+      imageUrl: '/images/ravioles.jpg',
+    });
+    const cesar = await Menu.create({
+      nameDish: 'Ensalada César',
+      price: 10.99,
+      available: true,
+      typeDish: 'Ensalada',
+      imageUrl: '/images/cesar.jpg',
+    });
+    const agua = await Menu.create({
+      nameDish: 'Agua con Gas 500ml',
+      price: 2.5,
+      available: true,
+      typeDish: 'Bebida',
+      imageUrl: '/images/agua.jpg',
+    });
+    console.log('✓ Menus');
+
+    // --- Personalizaciones (sin timestamps en DishCustomization) ---
+    const dcSinJamon = await DishCustomization.create({
+      menuId: milanesa.id,
+      name: 'Sin Jamón',
+      description: 'Servir sin jamón',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: true,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: milanesa.id,
+      name: 'Huevo Frito',
+      description: 'Agrega un huevo',
+      isRemovable: true,
+      additionalPrice: 1.5,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: ravioles.id,
+      name: 'Salsa Bolognesa',
+      description: 'Cambiar salsa',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    const dcSinCrutones = await DishCustomization.create({
+      menuId: cesar.id,
+      name: 'Sin Crutones',
+      description: 'Quitar crutones',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: true,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: agua.id,
+      name: 'Sin Hielo',
+      description: 'Servir sin hielo',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    console.log('✓ DishCustomizations');
+
+    // --- Reservas ---
+    await Promise.all([
+      Booking.create({ userId: customer.id, bookingDate: new Date('2025-09-01T20:00:00Z'), numberPeople: 2 }),
+      Booking.create({ userId: customer.id, bookingDate: new Date('2025-09-02T20:30:00Z'), numberPeople: 4 }),
     ]);
+    console.log('✓ Bookings');
 
-    // 11. Create Inventory
-    await Inventory.bulkCreate([
-      { name: "Carne de Res", amount: 50, unit: "kg", minimumThreshold: 10 },
-      { name: "Pollo", amount: 30, unit: "kg", minimumThreshold: 5 },
-      { name: "Queso", amount: 20, unit: "kg", minimumThreshold: 5 },
-      { name: "Huevos", amount: 120, unit: "unidades", minimumThreshold: 24 }
-    ]);
+    // --- Órdenes (sin timestamps en Order) ---
+    const order1 = await Order.create({
+      customerId: customer.id,
+      date: new Date('2025-09-03T12:00:00Z'),
+      state: 'received',
+      total_amount: 28.99,
+      deliveryType: 'delivery',
+      addressId: addr1.id,
+      paymentType: 'cash',       // efectivo → paymentMethodId = null
+      paymentMethodId: null,
+    });
 
-    console.log("✅ Database seeded successfully!");
-  } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    const order2 = await Order.create({
+      customerId: customer.id,
+      date: new Date('2025-09-04T12:30:00Z'),
+      state: 'preparing',
+      total_amount: 19.49,
+      deliveryType: 'in_place',
+      addressId: null,
+      paymentType: 'card',
+      paymentMethodId: pm1.id,   // tarjeta guardada del usuario
+    });
+    console.log('✓ Orders');
+
+    // --- Ítems de orden (sin timestamps en OrderItem) ---
+    const it1 = await OrderItem.create({
+      order_id: order1.id,
+      menu_id: milanesa.id,
+      quantity: 1,
+      price: 15.99,
+      notes: 'Bien cocida',
+    });
+    await OrderItem.create({
+      order_id: order1.id,
+      menu_id: agua.id,
+      quantity: 2,
+      price: 2.5,
+      notes: 'Frías',
+    });
+    const it3 = await OrderItem.create({
+      order_id: order2.id,
+      menu_id: cesar.id,
+      quantity: 1,
+      price: 10.99,
+      notes: 'Aderezo aparte',
+    });
+    console.log('✓ OrderItems');
+
+    // --- Customizaciones por ítem ---
+    await OrderItemCustomization.create({
+      orderItemId: it1.id,
+      customizationId: dcSinJamon.id,
+      isIncluded: true,
+      notes: null,
+    });
+    await OrderItemCustomization.create({
+      orderItemId: it3.id,
+      customizationId: dcSinCrutones.id,
+      isIncluded: true,
+      notes: 'Confirmar',
+    });
+    console.log('✓ OrderItemCustomizations');
+
+    console.log('✅ Seed completado');
+  } catch (err) {
+    console.error('❌ Error en seed:', err);
   } finally {
     await sequelize.close();
   }
 }
 
-// Execute the seed function
-seedData();
+seed();
