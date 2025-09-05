@@ -1,7 +1,8 @@
 
 import {Model, DataTypes, Optional} from 'sequelize'
 import sequelize from '../config/dbConfig' 
-
+import Order from './Order';
+import PaymentMethod from './PaymentMethod';
 
 // Definir los atributos del modelo User
 interface UserAttributes {
@@ -11,22 +12,38 @@ interface UserAttributes {
     email: string;
     phone: string;
     password: string;
-    rol: 'Administrator' | 'Waiter' | 'Customer';
+    role: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist' | 'Chef';
+    // Asociaciones
+    orders?: Order[];
+    paymentMethods?: PaymentMethod[];
   }
   
-  // Definir los atributos que se pueden crear (sin el 'id')
-  interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
+// Definir los atributos que se pueden crear (sin el 'id')
+interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
   
-  // La clase User extiende de Model y usa los tipos definidos
-  class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-    public id!: number;  // Definir explícitamente la propiedad 'id' como no opcional
+// La clase User extiende de Model y usa los tipos definidos
+class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+    public id!: number;
     public firstName!: string;
     public lastName!: string;
     public email!: string;
     public phone!: string;
     public password!: string;
-    public rol!: 'Administrator' | 'Waiter' | 'Customer';
-  }
+    public role!: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist'| 'Chef';
+    
+    // Timestamps
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
+    
+    // Asociaciones
+    public readonly orders?: Order[];
+    public readonly paymentMethods?: PaymentMethod[];
+    
+    // Métodos de instancia pueden ir aquí
+    public getFullName(): string {
+        return `${this.firstName} ${this.lastName}`;
+    }
+}
 
 User.init({
     id: {
@@ -55,15 +72,15 @@ User.init({
         type: DataTypes.STRING(255),
         allowNull: false
     },
-    rol:{
-        type: DataTypes.ENUM('Administrator', 'Waiter', 'Customer'),
+    role:{
+        type: DataTypes.ENUM('Administrator', 'Waiter', 'Customer', 'Receptionist', 'Chef'),
         allowNull: false
     },
     
 },{
     sequelize,
     modelName: 'User',
-    tableName: 'Users',
+    tableName: 'users',
 })
 
 export default User

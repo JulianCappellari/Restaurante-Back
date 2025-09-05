@@ -1,458 +1,354 @@
-import sequelize from "../config/dbConfig";
-import User from "../models/User";
-import Table from "../models/Table";
-import Order from "../models/Order";
-import Booking from "../models/Booking";
-import Menu from "../models/Menu";
-import Inventory from "../models/Inventory";
-import Address from "../models/Address";
-import PaymentMethod from "../models/PaymentMethod";
-import OrderItem from "../models/OrderItem";
-import DishCustomization from "../models/DishCustomization";
-import bcrypt from "bcrypt";
+// src/seed/seed.ts
+import bcrypt from 'bcrypt';
+import sequelize from '../config/dbConfig';
 
-async function seedData() {
+// Carga modelos y asociaciones (Menu.initialize?, etc.)
+import '../models/Associations';
+
+import User from '../models/User';
+import Address from '../models/Address';
+import PaymentMethod from '../models/PaymentMethod';
+import Table from '../models/Table';
+import Inventory from '../models/Inventory';
+import Menu from '../models/Menu';
+import DishCustomization from '../models/DishCustomization';
+import Booking from '../models/Booking';
+import BookingTable from '../models/BookingTable';
+import Order from '../models/Order';
+import OrderItem from '../models/OrderItem';
+import OrderItemCustomization from '../models/OrderItemCustomization';
+
+async function seed() {
   try {
-    // 1. Limpieza profunda de tablas (DROP TABLE IF EXISTS)
-    // Primero deshabilitamos las verificaciones de claves foráneas
-    await sequelize.query(`SET FOREIGN_KEY_CHECKS = 0;`);
-    
-    // Luego eliminamos las tablas en el orden correcto para evitar violaciones de claves foráneas
-    // Primero las tablas que tienen claves foráneas (dependientes)
-    await sequelize.query(`DROP TABLE IF EXISTS order_item_customizations;`);
-    await sequelize.query(`DROP TABLE IF EXISTS order_items;`);
-    await sequelize.query(`DROP TABLE IF EXISTS orders;`);
-    await sequelize.query(`DROP TABLE IF EXISTS bookings;`);
-    await sequelize.query(`DROP TABLE IF EXISTS dish_customizations;`);
-    await sequelize.query(`DROP TABLE IF EXISTS inventory;`);
-    await sequelize.query(`DROP TABLE IF EXISTS payment_methods;`);
-    await sequelize.query(`DROP TABLE IF EXISTS addresses;`);
-    
-    // Luego las tablas principales
-    await sequelize.query(`DROP TABLE IF EXISTS menu;`); // Cambiado de 'menus' a 'menu'
-    await sequelize.query(`DROP TABLE IF EXISTS tables;`);
-    await sequelize.query(`DROP TABLE IF EXISTS users;`);
-    
-    // Finalmente, volvemos a habilitar las verificaciones de claves foráneas
-    await sequelize.query(`SET FOREIGN_KEY_CHECKS = 1;`);
-    console.log("Tablas eliminadas correctamente");
+    // Limpieza (usa nombres reales de tablas)
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
+    const drops = [
+      'table_sessions',
+      'booking_tables',
+      'order_item_customizations',
+      'order_items',
+      'orders',
+      'bookings',
+      'dish_customizations',
+      'inventory',
+      'payment_methods',
+      'addresses',
+      'menus',
+      'tables',
+      'users',
+    ];
+    for (const t of drops) await sequelize.query(`DROP TABLE IF EXISTS \`${t}\`;`);
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
 
-    // 2. Sincroniza modelos (crea tablas limpias)
+    // Crear schema
     await sequelize.sync({ force: true });
-    console.log("Tablas creadas correctamente");
+    console.log('✓ Tablas sincronizadas');
 
-    // 3. Inserta datos en orden correcto
-    // Usuarios
-    const users = await User.bulkCreate([
-      {
-        firstName: "John",
-        lastName: "Doe",
-        email: "john.doe@example.com",
-        phone: "1436548211",
-        password: await bcrypt.hash("password123", 10),
-        rol: "Administrator",
-      },
-      {
-        firstName: "Jane",
-        lastName: "Smith",
-        email: "jane.smith@example.com",
-        phone: "5436548216",
-        password: await bcrypt.hash("password456", 10),
-        rol: "Customer",
-      },
-      {
-        firstName: "Carlos",
-        lastName: "Lopez",
-        email: "carlos.lopez@example.com",
-        phone: "3436548213",
-        password: await bcrypt.hash("password789", 10),
-        rol: "Waiter",
-      },
-    ], { returning: true });
-
-    // Mesas
-    await Table.bulkCreate([
-      { tableNum: 1, ability: 4, state: "available" },
-      { tableNum: 2, ability: 2, state: "reserved" },
-      { tableNum: 3, ability: 6, state: "available" },
-      { tableNum: 4, ability: 2, state: "available" },
+    // --- Usuarios ---
+    const [adminPass, waiterPass, custPass, receptionistPass, chefPass] = await Promise.all([
+      bcrypt.hash('admin123', 10),
+      bcrypt.hash('waiter123', 10),
+      bcrypt.hash('customer123', 10),
+      bcrypt.hash('receptionist123', 10),
+      bcrypt.hash('chef123', 10),
     ]);
 
-    // Direcciones
-    const addresses = await Address.bulkCreate([
-      {
-        street: "Calle Falsa",
-        streetNumber: "123",
-        city: "Córdoba",
-        province: "Córdoba",
-        postalCode: "5000",
-        userId: users[0].id,
-      },
-      {
-        street: "Avenida Siempre Viva",
-        streetNumber: "742",
-        city: "Córdoba",
-        province: "Córdoba",
-        postalCode: "5000",
-        userId: users[1].id,
-      },
-      {
-        street: "San Martín",
-        streetNumber: "456",
-        city: "Villa Allende",
-        province: "Córdoba",
-        postalCode: "5105",
-        userId: users[2].id,
-      },
-      {
-        street: "Belgrano",
-        streetNumber: "987",
-        city: "Córdoba",
-        province: "Córdoba",
-        postalCode: "5000",
-        userId: users[1].id,
-        floor: "2",
-        apartment: "B",
-      },
-    ], { returning: true });
+    const admin = await User.create({
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@restaurant.com',
+      phone: '+541111111111',
+      password: adminPass,
+      role: 'Administrator',
+    });
 
-    // Menú - Platos Principales
-    const menuItems = await Menu.bulkCreate([
-      {
-        nameDish: "Milanesa Napolitana con Papas Fritas",
-        price: 15.99,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/milanesa-napolitana.jpg'
-      },
-      {
-        nameDish: "Ravioles de Ricotta y Espinaca con Salsa Fileto",
-        price: 14.50,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/ravioles-espinaca.jpg'
-      },
-      {
-        nameDish: "Asado de Tira con Ensalada Mixta",
-        price: 18.99,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/asado-tira.jpg'
-      },
-      {
-        nameDish: "Pechuga de Pollo a la Parrilla con Puré",
-        price: 12.99,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/pollo-parrilla.jpg'
-      },
-      {
-        nameDish: "Sorrentinos de Jamón y Queso con Salsa Cuatro Quesos",
-        price: 16.50,
-        available: true,
-        typeDish: 'Plato Principal',
-        imageUrl: '/images/sorrentinos.jpg'
-      },
-      // Ensaladas
-      {
-        nameDish: "Ensalada César con Pollo",
-        price: 10.99,
-        available: true,
-        typeDish: 'Ensalada',
-        imageUrl: '/images/cesar-pollo.jpg'
-      },
-      {
-        nameDish: "Ensalada Capresse",
-        price: 9.50,
-        available: true,
-        typeDish: 'Ensalada',
-        imageUrl: '/images/capresse.jpg'
-      },
-      // Postres
-      {
-        nameDish: "Flan Casero con Dulce de Leche y Crema",
-        price: 6.50,
-        available: true,
-        typeDish: 'Postre',
-        imageUrl: '/images/flan-dulce-leche.jpg'
-      },
-      // Bebidas
-      {
-        nameDish: "Agua Mineral con Gas 500ml",
-        price: 2.50,
-        available: true,
-        typeDish: 'Bebida',
-        imageUrl: '/images/agua-gas.jpg'
-      },
-      {
-        nameDish: "Gaseosa Linea Coca Cola 500ml",
-        price: 3.00,
-        available: true,
-        typeDish: 'Bebida',
-        imageUrl: '/images/gaseosa.jpg'
-      }
-    ], { returning: true });
+    const waiter = await User.create({
+      firstName: 'John',
+      lastName: 'Waiter',
+      email: 'waiter@restaurant.com',
+      phone: '+541122222222',
+      password: waiterPass,
+      role: 'Waiter',
+    });
 
-    // Agregar personalizaciones a los platos
-    // 1. Personalizaciones para Milanesa Napolitana
-    await DishCustomization.bulkCreate([
-      {
-        menuId: menuItems[0].id,
-        name: "Sin Jamón",
-        description: "Se sirve sin jamón",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: true
-      },
-      {
-        menuId: menuItems[0].id,
-        name: "Sin Queso",
-        description: "Se sirve sin queso",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: true
-      },
-      {
-        menuId: menuItems[0].id,
-        name: "Huevo Frito Extra",
-        description: "Incluye un huevo frito adicional",
-        isRemovable: true,
-        additionalPrice: 1.50,
-        isDefaultIncluded: false
-      }
+    const receptionist = await User.create({
+      firstName: 'Sarah',
+      lastName: 'Receptionist',
+      email: 'reception@restaurant.com',
+      phone: '+541144444444',
+      password: receptionistPass,
+      role: 'Receptionist',
+    });
+
+    const chef = await User.create({
+      firstName: 'Carlos',
+      lastName: 'Chef',
+      email: 'chef@restaurant.com',
+      phone: '+541155555555',
+      password: chefPass,
+      role: 'Chef',
+    });
+
+    const customer = await User.create({
+      firstName: 'Maria',
+      lastName: 'Garcia',
+      email: 'maria@example.com',
+      phone: '+541133333333',
+      password: custPass,
+      role: 'Customer',
+    });
+    console.log('✓ Users');
+
+    // --- Direcciones ---
+    const addr1 = await Address.create({
+      userId: customer.id,
+      street: 'Av. Corrientes',
+      streetNumber: '1234',
+      city: 'Buenos Aires',
+      province: 'Buenos Aires',
+      postalCode: 'C1043',
+    });
+
+    const addr2 = await Address.create({
+      userId: customer.id,
+      street: 'Lavalle',
+      streetNumber: '567',
+      city: 'Buenos Aires',
+      province: 'Buenos Aires',
+      postalCode: 'C1047',
+      floor: '2',
+      apartment: 'B',
+    });
+    console.log('✓ Addresses');
+
+    // --- Métodos de pago ---
+    const rawCard = '4111111111111111';
+    const rawCvv = '123';
+    const pm1 = await PaymentMethod.create({
+      name: 'Visa Gold',
+      type: 'card',
+      isDefault: true,
+      cardHolderName: 'MARIA GARCIA',
+      cardNumber: await bcrypt.hash(rawCard, 10),
+      last4: rawCard.slice(-4),
+      expirationDate: '12/26',
+      cvv: await bcrypt.hash(rawCvv, 10),
+      status: true,
+      userId: customer.id,
+    });
+    console.log('✓ PaymentMethods');
+
+    // --- Mesas (solo 2 y 4) ---
+    const tables = await Promise.all([
+      // 2 personas
+      Table.create({ tableNum: 1, ability: 2, status: 'available' }),
+      Table.create({ tableNum: 2, ability: 2, status: 'available' }),
+      Table.create({ tableNum: 3, ability: 2, status: 'available' }),
+      Table.create({ tableNum: 4, ability: 2, status: 'reserved' }),
+
+      // 4 personas
+      Table.create({ tableNum: 5, ability: 4, status: 'available' }),
+      Table.create({ tableNum: 6, ability: 4, status: 'available' }),
+      Table.create({ tableNum: 7, ability: 4, status: 'available' }),
+      Table.create({ tableNum: 8, ability: 4, status: 'reserved' }),
     ]);
+    console.log('✓ Tables');
 
-    // 2. Personalizaciones para Ravioles
-    await DishCustomization.bulkCreate([
-      {
-        menuId: menuItems[1].id,
-        name: "Salsa Bolognesa",
-        description: "Cambia la salsa fileto por bolognesa",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: false
-      },
-      {
-        menuId: menuItems[1].id,
-        name: "Queso Rayado Extra",
-        description: "Agrega queso rayado extra",
-        isRemovable: true,
-        additionalPrice: 0.80,
-        isDefaultIncluded: false
-      }
+    // --- Inventario ---
+    await Promise.all([
+      Inventory.create({ name: 'Tomatoes', amount: 100, minimumThreshold: 20 }),
+      Inventory.create({ name: 'Cheese', amount: 50, minimumThreshold: 10 }),
+      Inventory.create({ name: 'Olive Oil', amount: 30, minimumThreshold: 5 }),
     ]);
+    console.log('✓ Inventory');
 
-    // 3. Personalizaciones para Asado de Tira
-    await DishCustomization.bulkCreate([
-      {
-        menuId: menuItems[2].id,
-        name: "Punto de Cocción",
-        description: "Seleccione el punto de cocción",
-        isRemovable: false,
-        additionalPrice: 0,
-        isDefaultIncluded: true,
-        isRequired: true
-      },
-      {
-        menuId: menuItems[2].id,
-        name: "Acompañamiento",
-        description: "Elija su acompañamiento",
-        isRemovable: false,
-        additionalPrice: 0,
-        isDefaultIncluded: true,
-        isRequired: true
-      }
+    // --- Menú ---
+    const milanesa = await Menu.create({
+      nameDish: 'Milanesa Napolitana',
+      price: 15.99,
+      available: true,
+      typeDish: 'Plato Principal',
+      imageUrl: '/images/milanesa.jpg',
+    });
+    const ravioles = await Menu.create({
+      nameDish: 'Ravioles Ricotta y Espinaca',
+      price: 14.5,
+      available: true,
+      typeDish: 'Plato Principal',
+      imageUrl: '/images/ravioles.jpg',
+    });
+    const cesar = await Menu.create({
+      nameDish: 'Ensalada César',
+      price: 10.99,
+      available: true,
+      typeDish: 'Ensalada',
+      imageUrl: '/images/cesar.jpg',
+    });
+    const agua = await Menu.create({
+      nameDish: 'Agua con Gas 500ml',
+      price: 2.5,
+      available: true,
+      typeDish: 'Bebida',
+      imageUrl: '/images/agua.jpg',
+    });
+    console.log('✓ Menus');
+
+    // --- Personalizaciones ---
+    const dcSinJamon = await DishCustomization.create({
+      menuId: milanesa.id,
+      name: 'Sin Jamón',
+      description: 'Servir sin jamón',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: true,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: milanesa.id,
+      name: 'Huevo Frito',
+      description: 'Agrega un huevo',
+      isRemovable: true,
+      additionalPrice: 1.5,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: ravioles.id,
+      name: 'Salsa Bolognesa',
+      description: 'Cambiar salsa',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    const dcSinCrutones = await DishCustomization.create({
+      menuId: cesar.id,
+      name: 'Sin Crutones',
+      description: 'Quitar crutones',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: true,
+      isRequired: false,
+    });
+    await DishCustomization.create({
+      menuId: agua.id,
+      name: 'Sin Hielo',
+      description: 'Servir sin hielo',
+      isRemovable: true,
+      additionalPrice: 0,
+      isDefaultIncluded: false,
+      isRequired: false,
+    });
+    console.log('✓ DishCustomizations');
+
+// ---- Reservas (date+shift, N–N) ----
+    // 2025-01-15 (DINNER): ocupar mesas #5 y #6 (4pax) y #1,#2 (2pax)
+    const b1 = await Booking.create({ userId: customer.id, date: '2025-09-15', shift: 'dinner', numberPeople: 4, status: 'confirmed' });
+    const b2 = await Booking.create({ userId: customer.id, date: '2025-09-15', shift: 'dinner', numberPeople: 4, status: 'confirmed' });
+    const b3 = await Booking.create({ userId: customer.id, date: '2025-09-15', shift: 'dinner', numberPeople: 2, status: 'confirmed' });
+    const b4 = await Booking.create({ userId: customer.id, date: '2025-09-15', shift: 'dinner', numberPeople: 2, status: 'confirmed' });
+    await BookingTable.create({ bookingId: b1.id, tableId: tables[4].id }); // #5
+    await BookingTable.create({ bookingId: b2.id, tableId: tables[5].id }); // #6
+    await BookingTable.create({ bookingId: b3.id, tableId: tables[0].id }); // #1
+    await BookingTable.create({ bookingId: b4.id, tableId: tables[1].id }); // #2
+
+    // 2025-01-20 (LUNCH): FULL (todas las mesas #1..#8 ocupadas)
+    const lunchFullDate = '2025-09-20';
+    const bookingsLunchFull = await Promise.all([
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 2, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 2, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 2, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 2, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 4, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 4, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 4, status: 'confirmed' }),
+      Booking.create({ userId: customer.id, date: lunchFullDate, shift: 'lunch', numberPeople: 4, status: 'confirmed' }),
     ]);
+    // mapear a mesas 1..8
+    for (let i = 0; i < 8; i++) {
+      await BookingTable.create({ bookingId: bookingsLunchFull[i].id, tableId: tables[i].id });
+    }
 
-    // 4. Personalizaciones para Ensalada César
-    await DishCustomization.bulkCreate([
-      {
-        menuId: menuItems[5].id,
-        name: "Sin Crutones",
-        description: "Se sirve sin crutones",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: true
-      },
-      {
-        menuId: menuItems[5].id,
-        name: "Aderezo Aparte",
-        description: "El aderezo se sirve aparte",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: false
-      },
-      {
-        menuId: menuItems[5].id,
-        name: "Extra Pollo",
-        description: "Agrega más pollo a la ensalada",
-        isRemovable: true,
-        additionalPrice: 2.50,
-        isDefaultIncluded: false
-      }
-    ]);
+    // 2025-01-21 (LUNCH): solo dos mesas de 2 ocupadas (#1 y #2) → quedan #3,#4 y todas las de 4 libres
+    const b5 = await Booking.create({ userId: customer.id, date: '2025-09-21', shift: 'lunch', numberPeople: 2, status: 'confirmed' });
+    const b6 = await Booking.create({ userId: customer.id, date: '2025-09-21', shift: 'lunch', numberPeople: 2, status: 'confirmed' });
+    await BookingTable.create({ bookingId: b5.id, tableId: tables[0].id }); // #1
+    await BookingTable.create({ bookingId: b6.id, tableId: tables[1].id }); // #2
 
-    // 5. Personalizaciones para Gaseosas
-    await DishCustomization.bulkCreate([
-      {
-        menuId: menuItems[9].id,
-        name: "Sin Hielo",
-        description: "Se sirve sin hielo",
-        isRemovable: true,
-        additionalPrice: 0,
-        isDefaultIncluded: false
-      },
-      {
-        menuId: menuItems[9].id,
-        name: "Vaso con Limón",
-        description: "Agrega rodajas de limón",
-        isRemovable: true,
-        additionalPrice: 0.50,
-        isDefaultIncluded: false
-      }
-    ]);
+    // 2025-01-21 (DINNER): ejemplo de grupo de 6 con 4+2 (#5 y #3)
+    const b7 = await Booking.create({ userId: customer.id, date: '2025-09-21', shift: 'dinner', numberPeople: 6, status: 'confirmed' });
+    await BookingTable.create({ bookingId: b7.id, tableId: tables[4].id }); // #5 (4pax)
+    await BookingTable.create({ bookingId: b7.id, tableId: tables[2].id }); // #3 (2pax)
 
-    // Inventario
-    await Inventory.bulkCreate([
-      { name: "Tomatoes", amount: 100, minimumThreshold: 20 },
-      { name: "Cheese", amount: 50, minimumThreshold: 10 },
-      { name: "Olive Oil", amount: 30, minimumThreshold: 5 },
-      { name: "Chicken", amount: 70, minimumThreshold: 15 },
-    ]);
+    console.log('✓ Bookings');
+    const order1 = await Order.create({
+      customerId: customer.id,
+      date: new Date('2025-09-03T12:00:00Z'),
+      state: 'received',
+      total_amount: 28.99,
+      deliveryType: 'delivery',
+      addressId: addr1.id,
+      paymentType: 'cash',       // efectivo ⇒ paymentMethodId = null por hook
+      paymentMethodId: null,
+    });
 
-    // Métodos de pago asociados a usuarios válidos
-    const card1 = "4111111111111111";
-    const card2 = "5500000000000004";
-    const cvv1 = "123";
-    const cvv2 = "456";
-    const paymentMethods = await PaymentMethod.bulkCreate([
-      {
-        name: "Visa Gold",
-        cardHolderName: "Jane Smith",
-        cardNumber: await bcrypt.hash(card1, 10),
-        last4: card1.slice(-4),
-        expirationDate: "12/26",
-        cvv: await bcrypt.hash(cvv1, 10),
-        status: true,
-        userId: users[1].id,
-      },
-      {
-        name: "Mastercard Black",
-        cardHolderName: "Carlos Lopez",
-        cardNumber: await bcrypt.hash(card2, 10),
-        last4: card2.slice(-4),
-        expirationDate: "11/27",
-        cvv: await bcrypt.hash(cvv2, 10),
-        status: true,
-        userId: users[2].id,
-      },
-    ], { returning: true });
+    const order2 = await Order.create({
+      customerId: customer.id,
+      date: new Date('2025-09-04T12:30:00Z'),
+      state: 'preparing',
+      total_amount: 19.49,
+      deliveryType: 'in_place',
+      addressId: null,
+      paymentType: 'card',
+      paymentMethodId: pm1.id,   // tarjeta del usuario
+    });
+    console.log('✓ Orders');
 
-    // Bookings
-    await Booking.bulkCreate([
-      { userId: users[1].id, bookingDate: "2024-11-06", numberPeople: 4 },
-      { userId: users[2].id, bookingDate: "2024-11-07", numberPeople: 2 },
-    ]);
+    // --- Ítems de orden ---
+    const it1 = await OrderItem.create({
+      order_id: order1.id,
+      menu_id: milanesa.id,
+      quantity: 1,
+      price: 15.99,
+      notes: 'Bien cocida',
+    });
+    await OrderItem.create({
+      order_id: order1.id,
+      menu_id: agua.id,
+      quantity: 2,
+      price: 2.5,
+      notes: 'Frías',
+    });
+    const it3 = await OrderItem.create({
+      order_id: order2.id,
+      menu_id: cesar.id,
+      quantity: 1,
+      price: 10.99,
+      notes: 'Aderezo aparte',
+    });
+    console.log('✓ OrderItems');
 
-    // Órdenes para el cliente Jane Smith (users[1]) en todos los estados posibles
-    const orders = await Order.bulkCreate([
-      {
-        customerId: users[1].id, // Jane Smith
-        date: "2024-11-06",
-        state: "received",
-        total_amount: 20.99,
-        deliveryType: "in_place",
-        addressId: null,
-        paymentType: "cash",
-        paymentMethodId: null,
-      },
-      {
-        customerId: users[1].id,
-        date: "2024-11-07",
-        state: "preparing",
-        total_amount: 25.99,
-        deliveryType: "in_place",
-        addressId: null,
-        paymentType: "cash",
-        paymentMethodId: null,
-      },
-      {
-        customerId: users[1].id,
-        date: "2024-11-08",
-        state: "ready",
-        total_amount: 30.99,
-        deliveryType: "in_place",
-        addressId: null,
-        paymentType: "cash",
-        paymentMethodId: null,
-      },
-      {
-        customerId: users[1].id,
-        date: "2024-11-09",
-        state: "on_the_way",
-        total_amount: 35.99,
-        deliveryType: "delivery",
-        addressId: addresses[1].id,
-        paymentType: "card",
-        paymentMethodId: paymentMethods[0].id,
-      },
-      {
-        customerId: users[1].id,
-        date: "2024-11-10",
-        state: "delivered",
-        total_amount: 40.99,
-        deliveryType: "delivery",
-        addressId: addresses[1].id,
-        paymentType: "card",
-        paymentMethodId: paymentMethods[0].id,
-      },
-    ], { returning: true });
+    // --- Customizaciones por ítem ---
+    await OrderItemCustomization.create({
+      orderItemId: it1.id,
+      customizationId: dcSinJamon.id,
+      isIncluded: true,
+      notes: null,
+    });
+    await OrderItemCustomization.create({
+      orderItemId: it3.id,
+      customizationId: dcSinCrutones.id,
+      isIncluded: true,
+      notes: 'Confirmar',
+    });
+    console.log('✓ OrderItemCustomizations');
 
-    // OrderItems para cada orden de Jane Smith
-    await OrderItem.bulkCreate([
-      {
-        order_id: (orders[0] as any).id,
-        menu_id: (menuItems[0] as any).id,
-        quantity: 2,
-        price: 12.99, // Precio del primer ítem del menú
-        notes: "Sin queso",
-      },
-      {
-        order_id: (orders[1] as any).id,
-        menu_id: (menuItems[1] as any).id,
-        quantity: 1,
-        price: 14.99, // Precio del segundo ítem del menú
-        notes: "Extra salsa",
-      },
-      {
-        order_id: (orders[2] as any).id,
-        menu_id: (menuItems[2] as any).id,
-        quantity: 3,
-        price: 10.50, // Precio del tercer ítem del menú
-        notes: "Sin cebolla",
-      },
-      {
-        order_id: (orders[3] as any).id,
-        menu_id: (menuItems[3] as any).id,
-        quantity: 1,
-        price: 15.75, // Precio del cuarto ítem del menú
-        notes: "Vegana",
-      },
-      {
-        order_id: (orders[4] as any).id,
-        menu_id: (menuItems[0] as any).id,
-        quantity: 2,
-        price: 12.99, // Mismo precio que el primer ítem
-        notes: "Sin gluten",
-      },
-    ]);
-
-    console.log("Datos insertados correctamente");
-  } catch (error) {
-    console.error("Error al insertar datos:", error);
+    console.log('✅ Seed completado');
+  } catch (err) {
+    console.error('❌ Error en seed:', err);
   } finally {
     await sequelize.close();
   }
 }
 
-seedData();
+seed();

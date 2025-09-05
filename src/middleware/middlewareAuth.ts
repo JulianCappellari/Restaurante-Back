@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';  // Cambia este 
 
 interface JwtPayloadWithInfo extends jwt.JwtPayload {
   id: number;
-  rol: 'Administrator' | 'Waiter' | 'Customer';
+  role: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist' | 'Chef';
   email: string;
 }
 declare global {
@@ -29,8 +29,8 @@ export const authMiddleware = (roles: string[]) => {
       const decoded = jwt.verify(token, JWT_SECRET) as JwtPayloadWithInfo;
       console.log('Token decodificado:', decoded);  // Verifica el contenido del token decodificado
 
-      if (roles.length && !roles.includes(decoded.rol)) {
-        console.log('Acceso denegado, rol no permitido:', decoded.rol);  // Verifica si el rol es el esperado
+      if (roles.length && !roles.includes(decoded.role)) {
+        console.log('Acceso denegado, rol no permitido:', decoded.role);  // Verifica si el rol es el esperado
         return res.status(403).json({ error: 'Acceso denegado. No tienes permiso.' });
       }
 

@@ -1,6 +1,5 @@
 // src/dto/user.dto.ts
-
-
+import { CreateAddressDTO, UpdateAddressDTO } from './address.dto';
 
 export interface CreateUserDTO {
   firstName: string;
@@ -8,8 +7,8 @@ export interface CreateUserDTO {
   email: string;
   phone: string;
   password: string;
-  rol: 'Administrator' | 'Waiter' | 'Customer';
-  // address?: AddressDTO;
+  role: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist' | 'Chef';
+  address?: Omit<CreateAddressDTO, 'userId'>;
 }
 
 export interface UpdateUserDTO {
@@ -18,6 +17,6 @@ export interface UpdateUserDTO {
   email?: string;
   phone?: string;
   password?: string;
-  rol?: 'Administrator' | 'Waiter' | 'Customer';
-  // address?: AddressDTO;
+  role?: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist' | 'Chef';
+  address?: UpdateAddressDTO;
 }
