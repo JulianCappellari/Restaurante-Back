@@ -9,19 +9,32 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';  // Cambia este 
 
 // Registrar un nuevo usuario
 export const registerUser = async (data: CreateUserDTO) => {
+  const transaction = await User.sequelize!.transaction();
   try {
     const hashedPassword = await bcrypt.hash(data.password, 10);  // Encriptación de la contraseña
+    
+    // Create user first
     const newUser = await User.create({
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
       password: hashedPassword,
-      rol: data.rol,
-      address: data.address ? Address.create(data.address) : undefined,
-    });
+      role: data.role,
+    }, { transaction });
+
+    // Then create address if provided
+    if (data.address) {
+      await Address.create({
+        ...data.address,
+        userId: newUser.id,
+      }, { transaction });
+    }
+
+    await transaction.commit();
     return newUser;
   } catch (error) {
+    await transaction.rollback();
     throw new Error(`Error al registrar el usuario: ${error instanceof Error ? error.message : 'Error inesperado'}`);
   }
 };
@@ -39,7 +52,7 @@ export const authenticateUser = async (email: string, password: string) => {
   const token = jwt.sign(
     {
       id: user.id,
-      rol: user.rol,
+      role: user.role,
       email: user.email, 
     },
     JWT_SECRET,
@@ -59,22 +72,82 @@ export const getUserByEmail = async (email: string) => {
 
 // Actualizar información del usuario
 export const updateUser = async (id: number, data: UpdateUserDTO) => {
-  const user = await User.findByPk(id);
-  if (!user) {
-    throw new Error('Usuario no encontrado');
+  const transaction = await User.sequelize!.transaction();
+  try {
+    const user = await User.findByPk(id, { transaction });
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Update user fields
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);  // Encriptar la nueva contraseña
+    }
+    
+    // Remove address from data to avoid Sequelize errors
+    const { address, ...userData } = data;
+    const updatedUser = await user.update(userData, { transaction });
+
+    // Update address if provided
+    if (address) {
+      const requiredFields = ['street', 'streetNumber', 'city', 'province', 'postalCode'] as const;
+      const missingFields = requiredFields.filter(field => address[field] === undefined);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Faltan campos requeridos para la dirección: ${missingFields.join(', ')}`);
+      }
+      
+      const existingAddress = await Address.findOne({ where: { userId: id }, transaction });
+      if (existingAddress) {
+        await existingAddress.update({
+          street: address.street!,
+          streetNumber: address.streetNumber!,
+          city: address.city!,
+          province: address.province!,
+          postalCode: address.postalCode!,
+          floor: address.floor,
+          apartment: address.apartment
+        }, { transaction });
+      } else {
+        await Address.create({
+          street: address.street!,
+          streetNumber: address.streetNumber!,
+          city: address.city!,
+          province: address.province!,
+          postalCode: address.postalCode!,
+          floor: address.floor,
+          apartment: address.apartment,
+          userId: id
+        }, { transaction });
+      }
+    }
+
+    await transaction.commit();
+    return updatedUser;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
-  if (data.password) {
-    data.password = await bcrypt.hash(data.password, 10);  // Encriptar la nueva contraseña
-  }
-  const updatedUser = await user.update(data);
-  return updatedUser;
 };
 
 // Eliminar un usuario
 export const deleteUser = async (id: number) => {
-  const user = await User.findByPk(id);
-  if (!user) {
-    throw new Error('Usuario no encontrado');
+  const transaction = await User.sequelize!.transaction();
+  try {
+    const user = await User.findByPk(id, { transaction });
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    // Delete associated address if it exists
+    await Address.destroy({ where: { userId: id }, transaction });
+    
+    // Delete the user
+    await user.destroy({ transaction });
+    
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
-  await user.destroy();
 };

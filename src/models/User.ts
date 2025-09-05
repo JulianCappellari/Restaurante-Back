@@ -12,7 +12,7 @@ interface UserAttributes {
     email: string;
     phone: string;
     password: string;
-    rol: 'Administrator' | 'Waiter' | 'Customer';
+    role: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist' | 'Chef';
     // Asociaciones
     orders?: Order[];
     paymentMethods?: PaymentMethod[];
@@ -29,7 +29,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public email!: string;
     public phone!: string;
     public password!: string;
-    public rol!: 'Administrator' | 'Waiter' | 'Customer';
+    public role!: 'Administrator' | 'Waiter' | 'Customer' | 'Receptionist'| 'Chef';
     
     // Timestamps
     public readonly createdAt!: Date;
@@ -72,8 +72,8 @@ User.init({
         type: DataTypes.STRING(255),
         allowNull: false
     },
-    rol:{
-        type: DataTypes.ENUM('Administrator', 'Waiter', 'Customer'),
+    role:{
+        type: DataTypes.ENUM('Administrator', 'Waiter', 'Customer', 'Receptionist', 'Chef'),
         allowNull: false
     },
     

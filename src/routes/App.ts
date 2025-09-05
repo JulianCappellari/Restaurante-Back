@@ -4,6 +4,7 @@ import { middlewareValidator } from "../middleware/middlewareValidator"; // Midd
 import { 
   createBookingController, deleteBookingController, getAllBookingsController, getBookingByIdController, updateBookingController 
 } from "../controllers/reservaController";
+import { createBooking, getBooking, cancelBooking } from "../controllers/bookingController";
 import { 
   createInventoryController, deleteInventoryController, getAllInventoriesController, getInventoryByIdController, updateInventoryController 
 } from '../controllers/inventoryController';
@@ -17,6 +18,14 @@ import {
   createTableController, deleteTableController, getAllTablesController, getTableByIdController, updateTableController 
 } from '../controllers/tableController';
 import { deleteUserController, getUserByEmailController, updateUserController } from "../controllers/userController";
+import {
+  createTableSessionController,
+  deleteTableSessionController,
+  getActiveSessionsController,
+  getSessionByIdController,
+  getTableSessionsController,
+  updateTableSessionController
+} from '../controllers/tableSessionController';
 
 import { 
   createAddressController,
@@ -50,6 +59,7 @@ import {
   updateDishCustomizationController,
   deleteDishCustomizationController
 } from '../controllers/dishCustomizationController';
+import { checkAvailability } from "../controllers/availabilityController";
 
 
 
@@ -89,6 +99,19 @@ routerApp.put("/orders/:id", authMiddleware(['Administrator', 'Waiter', 'Custome
 routerApp.delete("/orders/:id", authMiddleware(['Administrator']), deleteOrderController);  // Solo Administradores pueden eliminar
 routerApp.get("/orders/customer/:customerId", getOrdersByCustomerIdController);  // Accesible a todos
 
+// Rutas para Bookings (reservas)
+routerApp.post('/bookings', authMiddleware(['Customer', 'Administrator']), createBooking);
+routerApp.get('/bookings/:id', authMiddleware(['Customer', 'Administrator']), getBooking);
+routerApp.put('/bookings/:id/cancel', authMiddleware(['Customer', 'Administrator']), cancelBooking);
+
+// Rutas para Table Sessions
+routerApp.get("/table-sessions/active", getActiveSessionsController);  // Accesible a todos
+routerApp.get("/table-sessions/:id", getSessionByIdController);  // Accesible a todos
+routerApp.post("/table-sessions", authMiddleware(['Administrator', 'Waiter']), createTableSessionController);
+routerApp.put("/table-sessions/:id", authMiddleware(['Administrator', 'Waiter']), updateTableSessionController);
+routerApp.delete("/table-sessions/:id", authMiddleware(['Administrator']), deleteTableSessionController);
+routerApp.get("/tables/:tableId/sessions", getTableSessionsController);  // Accesible a todos
+
 // Rutas para Mesas
 routerApp.post("/tables", authMiddleware(['Administrator']), createTableController);  // Solo Administradores pueden crear
 routerApp.get("/tables", getAllTablesController);  // Accesible a todos
@@ -102,6 +125,8 @@ routerApp.get("/customizations/:id", getDishCustomizationByIdController);
 routerApp.post("/customizations", authMiddleware(['Administrator']), createDishCustomizationController);
 routerApp.put("/customizations/:id", authMiddleware(['Administrator']), updateDishCustomizationController);
 routerApp.delete("/customizations/:id", authMiddleware(['Administrator']), deleteDishCustomizationController);
+
+routerApp.post('/availability/check', checkAvailability);
 
 // Rutas para OrderItem
 routerApp.post("/order-items", /* authMiddleware(['Administrator', 'Waiter']), */ createOrderItemController);
